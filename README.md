@@ -11,4 +11,8 @@ Main feature is that you can write code FULLY IN RUSSIAN LANGUAGE! Template:
     отладить(Отлично!);
 #
 [/mcl]
+
+After developing the main release version we gonna try to translate it on English!
+
+
 PROJECT PROTECTED BY MIT-LICENSE: You can read it in file called "LICENSE".
