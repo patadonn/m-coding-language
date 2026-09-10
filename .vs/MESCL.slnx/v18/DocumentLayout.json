@@ -1,0 +1,54 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Projects\\VS\\MESCL\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{7F291508-8224-ABD1-829C-F5BF53F207DC}|MESCL\\MESCL.csproj|c:\\projects\\vs\\mescl\\mescl\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7F291508-8224-ABD1-829C-F5BF53F207DC}|MESCL\\MESCL.csproj|solutionrelative:mescl\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7F291508-8224-ABD1-829C-F5BF53F207DC}|MESCL\\MESCL.csproj|c:\\projects\\vs\\mescl\\mescl\\tokenizator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7F291508-8224-ABD1-829C-F5BF53F207DC}|MESCL\\MESCL.csproj|solutionrelative:mescl\\tokenizator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Tokenizator.cs",
+              "DocumentMoniker": "C:\\Projects\\VS\\MESCL\\MESCL\\Tokenizator.cs",
+              "RelativeDocumentMoniker": "MESCL\\Tokenizator.cs",
+              "ToolTip": "C:\\Projects\\VS\\MESCL\\MESCL\\Tokenizator.cs",
+              "RelativeToolTip": "MESCL\\Tokenizator.cs",
+              "ViewState": "AgIAAIkAAAAAAAAAAAAAAJ0AAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-09T19:05:53.927Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Projects\\VS\\MESCL\\MESCL\\Program.cs",
+              "RelativeDocumentMoniker": "MESCL\\Program.cs",
+              "ToolTip": "C:\\Projects\\VS\\MESCL\\MESCL\\Program.cs",
+              "RelativeToolTip": "MESCL\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-09T19:04:40.887Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
