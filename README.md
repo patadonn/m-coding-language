@@ -11,17 +11,13 @@ We're creating new high-level SAFM (Simple Accessible Fast Multifunctional) Codi
 
 Main feature is that you can write code FULLY IN RUSSIAN LANGUAGE! Template:
 
-[mcl]
-
-переменная А = 54;
-
-если (А == 54) $
-
-    отладить(Отлично!);
+    переменная А = 54;
     
-#
-
-[/mcl]
+    если (А == 54) $
+    
+        отладить(Отлично!);
+    
+    #
 
 After developing the main release version we gonna try to translate it on English!
 
