@@ -1,0 +1,19 @@
+﻿using MESCL;
+using System;
+
+string source = "переменная А = 192.178;\n" +
+    "переменная Б = \"89\";\n" +
+    "переменная Ц,Д = 1,5;\n" +
+    "если переменная (Ц == А) $ \n" +
+    "отладить(\"Верно!\");\n" +
+    "#\n" +
+    "иначе $\n" +
+    "отладить(\"Неверно!\");\n" +
+    "#";
+
+var tokens = Tokenizator.Токенизовать(source);
+var parser = new Parser(tokens);
+var ast = parser.ParseProgram();
+var generated = CodeGen.GenerateCSharp(ast);
+//Console.WriteLine(generated);
+Executor.Execute(ast);

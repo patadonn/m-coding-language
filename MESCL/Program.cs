@@ -1,25 +1,38 @@
 ﻿using MESCL;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
-var токены = new List<Dictionary<string, (Tokenizator.ТипТокена, string)>>();
-
-токены = Tokenizator.Токенизовать("переменная А = 192.178;\n" +
-    "переменная Б = \"89\";\n" +
-    "переменная Ц,Д = $пропуск#,$0,5#;\n" + 
-    "если переменная (Ц == А) $ \n" +
-    "отладить(\"Верно!\");\n" +
-    "#\n" +
-    "иначе $\n" +
-    "отладить(\"Неверно!\");\n" +
-    "#");
-
-for (int i = 0; i < токены.Count; i++)
+if (args.Length == 0)
 {
-    foreach (var пара in токены[i])  // перебираем словарь
-    {
-        var (тип, значение) = пара.Value;  // распаковываем кортеж
-        Console.WriteLine($"{тип}: '{значение}'");
-    }
+    Console.WriteLine("Использование: MСL <путь_к_файлу.m>");
+    return;
 }
+
+var path = args[0];
+if (!File.Exists(path))
+{
+    Console.WriteLine($"Файл не найден: {path}");
+    return;
+}
+
+if (Path.GetExtension(path).ToLowerInvariant() != ".m")
+{
+    Console.WriteLine("Ожидается файл с расширением .m");
+    return;
+}
+
+var source = File.ReadAllText(path);
+
+var tokens = Tokenizator.Токенизовать(source);
+var parser = new Parser(tokens);
+var ast = parser.ParseProgram();
+var generated = CodeGen.GenerateCSharp(ast);
+
+// Печать и сохранение сгенерированного C#
+//Console.WriteLine("--- Сгенерированный C# код ---");
+//Console.WriteLine(generated);
+//var outPath = Path.ChangeExtension(path, ".cs");
+//File.WriteAllText(outPath, generated);
+//Console.WriteLine($"C# код сохранён в: {outPath}");
+
+Executor.Execute(ast);

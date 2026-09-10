@@ -1,0 +1,403 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace MESCL
+{
+    public class Parser
+    {
+        private readonly List<(Tokenizator.ТипТокена тип, string значение)> _tokens;
+        private int _pos = 0;
+
+        public Parser(List<Dictionary<string, (Tokenizator.ТипТокена, string)>> rawTokens)
+        {
+            _tokens = rawTokens.SelectMany(d => d.Values).Select(v => (v.Item1, v.Item2)).ToList();
+        }
+
+        private (Tokenizator.ТипТокена, string) Current => _pos < _tokens.Count ? _tokens[_pos] : (default, string.Empty);
+        private bool IsAtEnd => _pos >= _tokens.Count;
+
+        private (Tokenizator.ТипТокена, string) Peek(int ahead = 1)
+        {
+            int idx = _pos + ahead;
+            return idx < _tokens.Count ? _tokens[idx] : (default, string.Empty);
+        }
+
+        private (Tokenizator.ТипТокена, string) Advance()
+        {
+            var cur = Current;
+            _pos++;
+            return cur;
+        }
+
+        private bool Match(Tokenizator.ТипТокена тип)
+        {
+            if (IsAtEnd) return false;
+            if (Current.Item1 == тип)
+            {
+                Advance();
+                return true;
+            }
+            return false;
+        }
+
+        private void SkipNewlines()
+        {
+            while (!IsAtEnd && Current.Item1 == Tokenizator.ТипТокена.Перенос) Advance();
+        }
+
+        public ProgramNode ParseProgram()
+        {
+            var program = new ProgramNode();
+            SkipNewlines();
+            while (!IsAtEnd)
+            {
+                var stmt = ParseStatement();
+                if (stmt != null) program.Statements.Add(stmt);
+                SkipNewlines();
+            }
+            return program;
+        }
+
+        private AstNode? ParseStatement()
+        {
+            if (IsAtEnd) return null;
+            var (тип, значение) = Current;
+            if (тип == MESCL.Tokenizator.ТипТокена.Перенос)
+            {
+                Advance();
+                return null;
+            }
+
+            if (тип == MESCL.Tokenizator.ТипТокена.КодСлово)
+            {
+                if (значение == "переменная") return ParseVarDeclaration();
+                if (значение == "если") return ParseIf();
+                if (значение == "иначе")
+                {
+                    Advance();
+                    SkipNewlines();
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Действия) Advance();
+                    ParseActionsInto(new List<AstNode>());
+                    return null;
+                }
+                if (значение == "метод") return ParseMethod();
+                if (значение == "класс") return ParseClass();
+                if (значение == "защ") return ParseProtectedMethod();
+            }
+
+            if (тип == MESCL.Tokenizator.ТипТокена.Идентификатор || тип == MESCL.Tokenizator.ТипТокена.КодСлово || тип == MESCL.Tokenizator.ТипТокена.ВстройФукнция)
+            {
+                var name = значение;
+                Advance();
+                if (!IsAtEnd && Current.Item1 == MESCL.Tokenizator.ТипТокена.СОТКР)
+                {
+                    var call = new FunctionCallNode { Name = name };
+                    Advance();
+                    SkipNewlines();
+                    while (!IsAtEnd && Current.Item1 != MESCL.Tokenizator.ТипТокена.СЗАКР)
+                    {
+                        var expr = ParseExpression();
+                        if (expr != null) call.Arguments.Add(expr);
+                        if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Запятая) Advance(); else break;
+                    }
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.СЗАКР) Advance();
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.ДелительФункции) Advance();
+                    return call;
+                }
+
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Присвоить)
+                {
+                    Advance();
+                    var assign = new AssignmentNode { Target = name };
+                    assign.Value = ParseExpression();
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.ДелительФункции) Advance();
+                    return assign;
+                }
+
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.ДелительФункции) Advance();
+                return new FunctionCallNode { Name = name };
+            }
+
+            return null;
+        }
+
+        private List<string> ParseIdentifierList()
+        {
+            var list = new List<string>();
+            while (!IsAtEnd)
+            {
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Идентификатор || Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово)
+                {
+                    list.Add(Current.Item2);
+                    Advance();
+                }
+                else break;
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Запятая) { Advance(); continue; } else break;
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Присвоить)
+            {
+                Advance();
+                while (!IsAtEnd)
+                {
+                    var expr = ParseExpression();
+                    if (expr != null) list.Add(expr is IdentifierNode id ? id.Name : string.Empty);
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Запятая) { Advance(); continue; }
+                    break;
+                }
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.ДелительФункции) Advance();
+            return list;
+        }
+
+        private VarDeclarationNode ParseVarDeclaration()
+        {
+            Advance();
+            var node = new VarDeclarationNode();
+            while (!IsAtEnd)
+            {
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Идентификатор || Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово)
+                {
+                    node.Names.Add(Current.Item2);
+                    Advance();
+                }
+                else break;
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Запятая) { Advance(); continue; } else break;
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Присвоить)
+            {
+                Advance();
+                while (!IsAtEnd)
+                {
+                    var expr = ParseExpression();
+                    if (expr != null) node.Initializers.Add(expr);
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Запятая) { Advance(); continue; }
+                    break;
+                }
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.ДелительФункции) Advance();
+            return node;
+        }
+
+        private MethodDeclarationNode ParseProtectedMethod()
+        {
+            Advance();
+            var node = new MethodDeclarationNode();
+            node.IsProtected = true;
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово && Current.Item2 == "корутина")
+            {
+                node.IsCoroutine = true;
+                Advance();
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Идентификатор || Current.Item1 == MESCL.Tokenizator.ТипТокена.ВстройФукнция || Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово)
+            {
+                node.Name = Current.Item2;
+                Advance();
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.СОТКР)
+            {
+                Advance();
+                while (!IsAtEnd && Current.Item1 != MESCL.Tokenizator.ТипТокена.СЗАКР)
+                {
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Идентификатор || Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово)
+                    {
+                        node.Parameters.Add(Current.Item2);
+                        Advance();
+                    }
+                    if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Запятая) Advance(); else break;
+                }
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.СЗАКР) Advance();
+            }
+            SkipNewlines();
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Действия) Advance();
+            while (!IsAtEnd && Current.Item1 != MESCL.Tokenizator.ТипТокена.КонецДействий)
+            {
+                var stmt = ParseStatement();
+                if (stmt != null) node.Body.Add(stmt);
+                else SkipNewlines();
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.КонецДействий) Advance();
+            return node;
+        }
+
+        private IfNode ParseIf()
+        {
+            Advance();
+            var node = new IfNode();
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово && Current.Item2 == "переменная") Advance();
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.СОТКР) Advance();
+            node.Condition = ParseExpression();
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.СЗАКР) Advance();
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Действия) Advance();
+            ParseActionsInto(node.ThenBranch);
+            SkipNewlines();
+            if (!IsAtEnd && Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово && Current.Item2 == "иначе")
+            {
+                Advance();
+                SkipNewlines();
+                if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Действия) Advance();
+                ParseActionsInto(node.ElseBranch);
+            }
+            return node;
+        }
+
+        private MethodDeclarationNode ParseMethod()
+        {
+            Advance();
+            var node = new MethodDeclarationNode();
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово && Current.Item2 == "корутина")
+            {
+                node.IsCoroutine = true;
+                Advance();
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.Идентификатор || Current.Item1 == MESCL.Tokenizator.ТипТокена.ВстройФукнция || Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово)
+            {
+                node.Name = Current.Item2;
+                Advance();
+            }
+            if (Current.Item1 == MESCL.Tokenizator.ТипТокена.СОТКР)
+            {
+                Advance();
+                while (!IsAtEnd && Current.Item1 != MESCL.Tokenизатор.ТипТокена.СЗАКР)
+                {
+                    if (Current.Item1 == MESCL.Tokenizатор.ТипТокена.Идентификатор || Current.Item1 == MESCL.Tokenizator.ТипТокена.КодСлово)
+                    {
+                        node.Parameters.Add(Current.Item2);
+                        Advance();
+                    }
+                    if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Запятая) Advance(); else break;
+                }
+                if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.СЗАКР) Advance();
+            }
+            SkipNewlines();
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Действия) Advance();
+            while (!IsAtEnd && Current.Item1 != MESCL.Tokenизатор.ТипТокена.КонецДействий)
+            {
+                var stmt = ParseStatement();
+                if (stmt != null) node.Body.Add(stmt);
+                else SkipNewlines();
+            }
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.КонецДействий) Advance();
+            return node;
+        }
+
+        private ClassDeclarationNode ParseClass()
+        {
+            Advance();
+            var node = new ClassDeclarationNode();
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Идентификатор)
+            {
+                node.Name = Current.Item2;
+                Advance();
+            }
+            SkipNewlines();
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.КодСлово && Current.Item2 == "наследует")
+            {
+                Advance();
+                if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Идентификатор)
+                {
+                    node.BaseName = Current.Item2;
+                    Advance();
+                }
+            }
+            SkipNewlines();
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Действия) Advance();
+            while (!IsAtEnd && Current.Item1 != MESCL.Tokenизатор.ТипТокена.КонецДействий)
+            {
+                var stmt = ParseStatement();
+                if (stmt != null) node.Members.Add(stmt);
+                else SkipNewlines();
+            }
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.КонецДействий) Advance();
+            return node;
+        }
+
+        private ActionListNode ParseActionList()
+        {
+            var list = new ActionListNode();
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Действия) Advance();
+            while (!IsAtEnd && Current.Item1 != MESCL.Tokenизатор.ТипТокена.КонецДействий)
+            {
+                SkipNewlines();
+                var expr = ParseExpression();
+                if (expr != null) list.Items.Add(expr);
+                if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Запятая) Advance(); else break;
+            }
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.КонецДействий) Advance();
+            return list;
+        }
+
+        private void ParseActionsInto(List<AstNode> target)
+        {
+            while (!IsAtEnd && Current.Item1 != MESCL.Tokenизатор.ТипТокена.КонецДействий)
+            {
+                var stmt = ParseStatement();
+                if (stmt != null) target.Add(stmt);
+            }
+            if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.КонецДействий) Advance();
+        }
+
+        private ExpressionNode? ParseExpression()
+        {
+            var left = ParsePrimary();
+            if (left == null) return null;
+            if (!IsAtEnd)
+            {
+                var (тип, значение) = Current;
+                string? op = null;
+                if (тип == MESCL.Tokenизатор.ТипТокена.Плюс) op = "+";
+                else if (тип == MESCL.Tokenизатор.ТипТокена.Минус) op = "-";
+                else if (тип == MESCL.Tokenизатор.ТипТокена.Множить) op = "*";
+                else if (тип == MESCL.Tokenизатор.ТипТокена.Делить) op = "/";
+                else if (тип == MESCL.Tokenизатор.ТипТокена.Равно) op = "==";
+                if (op != null)
+                {
+                    Advance();
+                    var right = ParseExpression() ?? new IdentifierNode { Name = string.Empty };
+                    return new BinaryExpressionNode { Left = left, Operator = op, Right = right };
+                }
+            }
+            return left;
+        }
+
+        private ExpressionNode? ParsePrimary()
+        {
+            if (IsAtEnd) return null;
+            var (тип, значение) = Current;
+            if (тип == MESCL.Tokenизатор.ТипТокена.Действия) return ParseActionList();
+            if (тип == MESCL.Tokenизатор.ТипТокена.Номер)
+            {
+                Advance();
+                string raw = значение;
+                if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Точка)
+                {
+                    Advance();
+                    if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.Номер)
+                    {
+                        raw += "." + Current.Item2;
+                        Advance();
+                      }
+                }
+                return new NumberNode { Value = raw };
+            }
+            if (тип == MESCL.Tokenизатор.ТипТокена.Строка)
+            {
+                Advance();
+                return new StringNode { Value = значение };
+            }
+            if (тип == MESCL.Tokenизатор.ТипТокена.Идентификатор || тип == MESCL.Tokenизатор.ТипТокена.КодСлово)
+            {
+                Advance();
+                return new IdentifierNode { Name = значение };
+            }
+            if (тип == MESCL.Tokenизатор.ТипТокена.СОТКР)
+            {
+                Advance();
+                var expr = ParseExpression();
+                if (Current.Item1 == MESCL.Tokenизатор.ТипТокена.СЗАКР) Advance();
+                return expr;
+            }
+            return null;
+        }
+    }
+}

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Projects\\VS\\MESCL\\MESCL\\MESCL.csproj": {}
+    "D:\\Projects\\C#\\mcl-selfsurv\\MESCL\\MESCL.csproj": {}
   },
   "projects": {
-    "C:\\Projects\\VS\\MESCL\\MESCL\\MESCL.csproj": {
+    "D:\\Projects\\C#\\mcl-selfsurv\\MESCL\\MESCL.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Projects\\VS\\MESCL\\MESCL\\MESCL.csproj",
+        "projectUniqueName": "D:\\Projects\\C#\\mcl-selfsurv\\MESCL\\MESCL.csproj",
         "projectName": "MESCL",
-        "projectPath": "C:\\Projects\\VS\\MESCL\\MESCL\\MESCL.csproj",
+        "projectPath": "D:\\Projects\\C#\\mcl-selfsurv\\MESCL\\MESCL.csproj",
         "packagesPath": "C:\\Users\\PatadoNN\\.nuget\\packages\\",
-        "outputPath": "C:\\Projects\\VS\\MESCL\\MESCL\\obj\\",
+        "outputPath": "D:\\Projects\\C#\\mcl-selfsurv\\MESCL\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\PatadoNN\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -63,7 +63,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

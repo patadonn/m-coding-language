@@ -1,0 +1,158 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+
+namespace MESCL
+{
+    public class Executor
+    {
+        private readonly Dictionary<string, object?> _vars = new Dictionary<string, object?>();
+        private readonly Dictionary<string, MethodDeclarationNode> _methods = new Dictionary<string, MethodDeclarationNode>();
+        private readonly Stack<Dictionary<string, object?>> _scopes = new Stack<Dictionary<string, object?>>();
+
+        public static void Execute(ProgramNode program)
+        {
+            var ex = new Executor();
+            ex.Run(program);
+        }
+
+        private void Run(ProgramNode program)
+        {
+            foreach (var stmt in program.Statements)
+            {
+                if (stmt is MethodDeclarationNode m)
+                {
+                    _methods[m.Name] = m;
+                }
+                else ExecuteStatement(stmt);
+            }
+        }
+
+        private void ExecuteStatement(AstNode node)
+        {
+            switch (node)
+            {
+                case VarDeclarationNode v:
+                    for (int i = 0; i < v.Names.Count; i++)
+                    {
+                        var name = v.Names[i];
+                        object? val = null;
+                        if (i < v.Initializers.Count)
+                        {
+                            val = Evaluate(v.Initializers[i]);
+                        }
+                        _vars[name] = val;
+                    }
+                    break;
+
+                case AssignmentNode a:
+                    var value = Evaluate(a.Value);
+                    _vars[a.Target] = value;
+                    break;
+
+                case FunctionCallNode f:
+                    ExecuteFunctionCall(f);
+                    break;
+
+                case IfNode iff:
+                    var cond = Evaluate(iff.Condition);
+                    if (IsTrue(cond))
+                    {
+                        foreach (var s in iff.ThenBranch) ExecuteStatement(s);
+                    }
+                    else
+                    {
+                        foreach (var s in iff.ElseBranch) ExecuteStatement(s);
+                    }
+                    break;
+            }
+        }
+
+        private void ExecuteFunctionCall(FunctionCallNode f)
+        {
+            if (f.Name == "отладить")
+            {
+                var parts = new List<string>();
+                foreach (var a in f.Arguments)
+                {
+                    var v = Evaluate(a);
+                    parts.Add(v?.ToString() ?? "");
+                }
+                Console.WriteLine(string.Join(" ", parts));
+                return;
+            }
+
+            if (_methods.TryGetValue(f.Name, out var method))
+            {
+                var scope = new Dictionary<string, object?>();
+                _scopes.Push(scope);
+                foreach (var stmt in method.Body) ExecuteStatement(stmt);
+                _scopes.Pop();
+                return;
+            }
+        }
+
+        private object? Evaluate(ExpressionNode? expr)
+        {
+            if (expr == null) return null;
+            switch (expr)
+            {
+                case IdentifierNode id:
+                    if (_vars.TryGetValue(id.Name, out var v)) return v;
+                    return null;
+                case NumberNode n:
+                    if (double.TryParse(n.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)) return d;
+                    return n.Value;
+                case StringNode s:
+                    return s.Value;
+                case BinaryExpressionNode b:
+                    var L = Evaluate(b.Left);
+                    var R = Evaluate(b.Right);
+                    return EvalBinary(b.Operator, L, R);
+                case ActionListNode al:
+                    var arr = new object?[al.Items.Count];
+                    for (int i = 0; i < al.Items.Count; i++) arr[i] = Evaluate(al.Items[i]);
+                    return arr;
+                default:
+                    return null;
+            }
+        }
+
+        private object? EvalBinary(string op, object? L, object? R)
+        {
+            if (op == "==")
+            {
+                if (L == null && R == null) return true;
+                if (L == null || R == null) return false;
+                // try numeric compare
+                if (L is double ld && R is double rd) return ld == rd;
+                return L.ToString() == R.ToString();
+            }
+
+            // arithmetic operators
+            if (L is double lnum && R is double rnum)
+            {
+                return op switch
+                {
+                    "+" => lnum + rnum,
+                    "-" => lnum - rnum,
+                    "*" => lnum * rnum,
+                    "/" => rnum != 0 ? lnum / rnum : double.NaN,
+                    _ => null
+                };
+            }
+
+            return null;
+        }
+
+        private bool IsTrue(object? v)
+        {
+            if (v == null) return false;
+            if (v is bool b) return b;
+            if (v is double d) return Math.Abs(d) > double.Epsilon;
+            if (v is string s) return s.Length > 0;
+            if (v is object[] arr) return arr.Length > 0;
+            return true;
+        }
+    }
+}
