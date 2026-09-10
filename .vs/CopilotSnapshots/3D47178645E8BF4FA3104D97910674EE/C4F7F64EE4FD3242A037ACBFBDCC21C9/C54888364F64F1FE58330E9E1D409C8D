@@ -1,0 +1,156 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace MESCL
+{
+    public static class CodeGen
+    {
+        public static string GenerateCSharp(ProgramNode program)
+        public static string GenerateCSharp(ProgramNode program)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine();
+            sb.AppendLine("namespace MCLGenerated");
+            sb.AppendLine("{");
+            sb.AppendLine("    public static class GeneratedProgram");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public static void Run()");
+            sb.AppendLine("        {");
+
+            foreach (var stmt in program.Statements)
+            {
+                GenerateStatement(stmt, sb, 3);
+            }
+
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public static int Main(string[] args)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            Run();");
+            sb.AppendLine("            return 0;");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        private static void GenerateStatement(AstNode node, StringBuilder sb, int indentLevel)
+        {
+            string ind = new string(' ', indentLevel * 4);
+
+            switch (node)
+            {
+                case VarDeclarationNode v:
+                    // Если есть инициализаторы, сопоставляем по порядку с именами
+                    if (v.Initializers.Count > 0)
+                    {
+                        for (int i = 0; i < v.Names.Count; i++)
+                        {
+                            string name = v.Names[i];
+                            string init = "null";
+                            if (i < v.Initializers.Count)
+                                init = GenerateExpression(v.Initializers[i]);
+                            sb.AppendLine(ind + $"var {name} = {init};");
+                        }
+                    }
+                    else
+                    {
+                        // просто объявления без инициализации
+                        foreach (var name in v.Names)
+                            sb.AppendLine(ind + $"object {name} = null;");
+                    }
+                    break;
+
+                case AssignmentNode a:
+                    sb.AppendLine(ind + $"{a.Target} = {GenerateExpression(a.Value)};");
+                    break;
+
+                case FunctionCallNode f:
+                    // Простая подмена встроенной функции 'отладить' -> Console.WriteLine
+                    if (f.Name == "отладить")
+                    {
+                        var args = string.Join(", ", f.Arguments.Select(GenerateExpression));
+                        sb.AppendLine(ind + $"Console.WriteLine({(f.Arguments.Count==1?args:"\"[CALL]\"")});");
+                    }
+                    else
+                    {
+                        var args = string.Join(", ", f.Arguments.Select(GenerateExpression));
+                        sb.AppendLine(ind + $"{SanitizeIdentifier(f.Name)}({args});");
+                    }
+                    break;
+
+                case IfNode iff:
+                    var cond = iff.Condition != null ? GenerateExpression(iff.Condition) : "false";
+                    sb.AppendLine(ind + $"if ({cond})");
+                    sb.AppendLine(ind + "{");
+                    foreach (var s in iff.ThenBranch) GenerateStatement(s, sb, indentLevel + 1);
+                    sb.AppendLine(ind + "}");
+                    if (iff.ElseBranch.Count > 0)
+                    {
+                        sb.AppendLine(ind + "else");
+                        sb.AppendLine(ind + "{");
+                        foreach (var s in iff.ElseBranch) GenerateStatement(s, sb, indentLevel + 1);
+                        sb.AppendLine(ind + "}");
+                    }
+                    break;
+
+                case MethodDeclarationNode m:
+                    sb.AppendLine(ind + $"public static void {SanitizeIdentifier(m.Name)}({(m.Parameters.Count>0?"params object[] args":"")})");
+                    sb.AppendLine(ind + "{");
+                    foreach (var s in m.Body) GenerateStatement(s, sb, indentLevel + 1);
+                    sb.AppendLine(ind + "}");
+                    break;
+
+                default:
+                    // неизвестный узел — оставим комментарий
+                    sb.AppendLine(ind + "// Unhandled node: " + node.GetType().Name);
+                    break;
+            }
+        }
+
+        private static string GenerateExpression(ExpressionNode? expr)
+        {
+            if (expr == null) return "null";
+            switch (expr)
+            {
+                case IdentifierNode id:
+                    return SanitizeIdentifier(id.Name);
+                case NumberNode n:
+                    return n.Value;
+                case StringNode s:
+                    return "\"" + EscapeString(s.Value) + "\"";
+                case BinaryExpressionNode b:
+                    return "(" + GenerateExpression(b.Left) + " " + b.Operator + " " + GenerateExpression(b.Right) + ")";
+                case ActionListNode al:
+                    // Представляем как object[]
+                    var items = al.Items.Select(GenerateExpression);
+                    return "new object[] { " + string.Join(", ", items) + " }";
+                default:
+                    return "null";
+            }
+        }
+
+        private static string SanitizeIdentifier(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "_";
+            var sb = new StringBuilder();
+            foreach (var ch in name)
+            {
+                if (char.IsLetterOrDigit(ch) || ch == '_') sb.Append(ch);
+                else sb.Append('_');
+            }
+            if (char.IsDigit(sb[0])) sb.Insert(0, '_');
+            return sb.ToString();
+        }
+
+        private static string EscapeString(string s)
+        {
+            return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        }
+    }
+}

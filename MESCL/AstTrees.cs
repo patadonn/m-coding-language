@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+
+namespace MESCL
+{
+    public abstract class AstNode { }
+
+    public class ProgramNode : AstNode
+    {
+        public List<AstNode> Statements { get; } = new List<AstNode>();
+    }
+
+    public abstract class StatementNode : AstNode { }
+
+    public abstract class ExpressionNode : AstNode { }
+
+    public class VarDeclarationNode : StatementNode
+    {
+        public List<string> Names { get; } = new List<string>();
+        public List<ExpressionNode> Initializers { get; } = new List<ExpressionNode>();
+    }
+
+    public class AssignmentNode : StatementNode
+    {
+        public string Target { get; set; } = string.Empty;
+        public ExpressionNode? Value { get; set; }
+    }
+
+    public class IfNode : StatementNode
+    {
+        public ExpressionNode? Condition { get; set; }
+        public List<AstNode> ThenBranch { get; } = new List<AstNode>();
+        public List<AstNode> ElseBranch { get; } = new List<AstNode>();
+    }
+
+    public class FunctionCallNode : StatementNode
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<ExpressionNode> Arguments { get; } = new List<ExpressionNode>();
+    }
+
+    public class IdentifierNode : ExpressionNode
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class NumberNode : ExpressionNode
+    {
+        public string Value { get; set; } = string.Empty; // keep raw token
+    }
+
+    public class StringNode : ExpressionNode
+    {
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class BinaryExpressionNode : ExpressionNode
+    {
+        public ExpressionNode Left { get; set; } = null!;
+        public string Operator { get; set; } = string.Empty;
+        public ExpressionNode Right { get; set; } = null!;
+    }
+
+    public class ActionListNode : ExpressionNode
+    {
+        public List<ExpressionNode> Items { get; } = new List<ExpressionNode>();
+    }
+
+    public class MethodDeclarationNode : StatementNode
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<string> Parameters { get; } = new List<string>();
+        public List<AstNode> Body { get; } = new List<AstNode>();
+        public bool IsCoroutine { get; set; } = false;
+        public bool IsProtected { get; set; } = false;
+    }
+
+    public class ClassDeclarationNode : StatementNode
+    {
+        public string Name { get; set; } = string.Empty;
+        public string BaseName { get; set; } = string.Empty;
+        public List<AstNode> Members { get; } = new List<AstNode>();
+    }
+}

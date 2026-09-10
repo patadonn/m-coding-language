@@ -1,0 +1,243 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Threading.Tasks;
+
+namespace MESCL
+{
+    public class Executor
+    {
+        private readonly Dictionary<string, object?> _vars = new Dictionary<string, object?>();
+        private readonly Dictionary<string, MethodDeclarationNode> _methods = new Dictionary<string, MethodDeclarationNode>();
+        private readonly Dictionary<string, ClassDeclarationNode> _classes = new Dictionary<string, ClassDeclarationNode>();
+        private readonly Stack<Dictionary<string, object?>> _scopes = new Stack<Dictionary<string, object?>>();
+
+        public static void Execute(ProgramNode program)
+        {
+            var ex = new Executor();
+            ex.Run(program);
+        }
+
+        private void Run(ProgramNode program)
+        {
+            foreach (var stmt in program.Statements)
+            {
+                if (stmt is MethodDeclarationNode m)
+                {
+                    _methods[m.Name] = m;
+                }
+                else if (stmt is ClassDeclarationNode c)
+                {
+                    _classes[c.Name] = c;
+                }
+                else ExecuteStatement(stmt);
+            }
+        }
+
+        private void ExecuteStatement(AstNode node)
+        {
+            switch (node)
+            {
+                case VarDeclarationNode v:
+                    for (int i = 0; i < v.Names.Count; i++)
+                    {
+                        var name = v.Names[i];
+                        object? val = null;
+                        if (i < v.Initializers.Count)
+                        {
+                            val = Evaluate(v.Initializers[i]);
+                        }
+                        _vars[name] = val;
+                    }
+                    break;
+
+                case AssignmentNode a:
+                    var value = Evaluate(a.Value);
+                    _vars[a.Target] = value;
+                    break;
+
+                case FunctionCallNode f:
+                    ExecuteFunctionCall(f);
+                    break;
+
+                case IfNode iff:
+                    var cond = Evaluate(iff.Condition);
+                    if (IsTrue(cond))
+                    {
+                        foreach (var s in iff.ThenBranch) ExecuteStatement(s);
+                    }
+                    else
+                    {
+                        foreach (var s in iff.ElseBranch) ExecuteStatement(s);
+                    }
+                    break;
+            }
+        }
+
+        private void ExecuteFunctionCall(FunctionCallNode f)
+        {
+            if (f.Name == "отладить")
+            {
+                var parts = new List<string>();
+                foreach (var a in f.Arguments)
+                {
+                    var v = Evaluate(a);
+                    parts.Add(v?.ToString() ?? "");
+                }
+                Console.WriteLine(string.Join(" ", parts));
+                return;
+            }
+
+            if (_methods.TryGetValue(f.Name, out var method))
+            {
+                if (method.IsProtected || method.IsCoroutine)
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            var ex = new Executor();
+                            foreach (var stmt in method.Body) ex.ExecuteStatement(stmt);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Protected method '{method.Name}' threw: {ex.Message}");
+                        }
+                    });
+                    return;
+                }
+
+                var scope = new Dictionary<string, object?>();
+                _scopes.Push(scope);
+                foreach (var stmt in method.Body)
+                {
+                    ExecuteStatement(stmt);
+                }
+                _scopes.Pop();
+                return;
+            }
+
+            if (f.Name.Contains('.'))
+            {
+                var parts = f.Name.Split('.');
+                if (parts.Length == 2 && _classes.TryGetValue(parts[0], out var cls))
+                {
+                    var mname = parts[1];
+                    var methodNode = FindMethodInClassHierarchy(cls, mname);
+                    if (methodNode != null)
+                    {
+                        if (methodNode.IsProtected || methodNode.IsCoroutine)
+                        {
+                            Task.Run(() =>
+                            {
+                                try
+                                {
+                                    var ex = new Executor();
+                                    foreach (var stmt in methodNode.Body) ex.ExecuteStatement(stmt);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Protected class method '{cls.Name}.{methodNode.Name}' threw: {ex.Message}");
+                                }
+                            });
+                        }
+                        else
+                        {
+                            var ex = new Executor();
+                            foreach (var stmt in methodNode.Body) ex.ExecuteStatement(stmt);
+                        }
+                    }
+                }
+                return;
+            }
+
+            if (f.Name == "задержка")
+            {
+                if (f.Arguments.Count > 0)
+                {
+                    var val = Evaluate(f.Arguments[0]);
+                    if (val is double d)
+                    {
+                        int ms = (int)(d * 1000);
+                        System.Threading.Thread.Sleep(ms);
+                    }
+                }
+                return;
+            }
+        }
+
+        private MethodDeclarationNode? FindMethodInClassHierarchy(ClassDeclarationNode cls, string methodName)
+        {
+            foreach (var member in cls.Members)
+            {
+                if (member is MethodDeclarationNode md && md.Name == methodName) return md;
+            }
+            if (!string.IsNullOrWhiteSpace(cls.BaseName) && _classes.TryGetValue(cls.BaseName, out var baseCls))
+            {
+                return FindMethodInClassHierarchy(baseCls, methodName);
+            }
+            return null;
+        }
+
+        private object? Evaluate(ExpressionNode? expr)
+        {
+            if (expr == null) return null;
+            switch (expr)
+            {
+                case IdentifierNode id:
+                    if (_vars.TryGetValue(id.Name, out var v)) return v;
+                    return null;
+                case NumberNode n:
+                    if (double.TryParse(n.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)) return d;
+                    return n.Value;
+                case StringNode s:
+                    return s.Value;
+                case BinaryExpressionNode b:
+                    var L = Evaluate(b.Left);
+                    var R = Evaluate(b.Right);
+                    return EvalBinary(b.Operator, L, R);
+                case ActionListNode al:
+                    var arr = new object?[al.Items.Count];
+                    for (int i = 0; i < al.Items.Count; i++) arr[i] = Evaluate(al.Items[i]);
+                    return arr;
+                default:
+                    return null;
+            }
+        }
+
+        private object? EvalBinary(string op, object? L, object? R)
+        {
+            if (op == "==")
+            {
+                if (L == null && R == null) return true;
+                if (L == null || R == null) return false;
+                if (L is double ld && R is double rd) return ld == rd;
+                return L.ToString() == R.ToString();
+            }
+
+            if (L is double lnum && R is double rnum)
+            {
+                return op switch
+                {
+                    "+" => lnum + rnum,
+                    "-" => lnum - rnum,
+                    "*" => lnum * rnum,
+                    "/" => rnum != 0 ? lnum / rnum : double.NaN,
+                    _ => null
+                };
+            }
+
+            return null;
+        }
+
+        private bool IsTrue(object? v)
+        {
+            if (v == null) return false;
+            if (v is bool b) return b;
+            if (v is double d) return Math.Abs(d) > double.Epsilon;
+            if (v is string s) return s.Length > 0;
+            if (v is object[] arr) return arr.Length > 0;
+            return true;
+        }
+    }
+}

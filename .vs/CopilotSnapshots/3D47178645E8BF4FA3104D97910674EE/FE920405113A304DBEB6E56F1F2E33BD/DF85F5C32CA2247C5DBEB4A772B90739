@@ -1,0 +1,80 @@
+﻿using MESCL;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+var токены = Tokenizator.Токенизовать("переменная А = 192.178;\n" +
+    "переменная Б = \"89\";\n" +
+    "переменная Ц,Д = $1#,$.,5#;\n" +
+    "если переменная (Ц == А) $ \n" +
+    "отладить(\"Верно!\");\n" +
+    "#\n" +
+    "иначе $\n" +
+    "отладить(\"Неверно!\");\n" +
+    "#");
+
+var parser = new Parser(токены);
+var ast = parser.ParseProgram();
+
+PrintNode(ast, 0);
+
+// Простая печать AST
+void PrintNode(AstNode node, int indent)
+{
+    string ind = new string(' ', indent * 2);
+    switch (node)
+    {
+        case ProgramNode p:
+            Console.WriteLine(ind + "Program");
+            foreach (var s in p.Statements) PrintNode(s, indent + 1);
+            break;
+        case VarDeclarationNode v:
+            Console.WriteLine(ind + "VarDeclaration: " + string.Join(",", v.Names));
+            if (v.Initializer != null)
+            {
+                Console.WriteLine(ind + "  Initializer:");
+                Console.WriteLine(ind + "    " + PrintExpression(v.Initializer));
+            }
+            break;
+        case AssignmentNode a:
+            Console.WriteLine(ind + "Assignment: " + a.Target);
+            Console.WriteLine(ind + "  Value: " + (a.Value != null ? PrintExpression(a.Value) : "<null>"));
+            break;
+        case IfNode iff:
+            Console.WriteLine(ind + "If");
+            Console.WriteLine(ind + "  Condition: " + (iff.Condition != null ? PrintExpression(iff.Condition) : "<null>"));
+            Console.WriteLine(ind + "  Then:");
+            foreach (var s in iff.ThenBranch) PrintNode(s, indent + 2);
+            if (iff.ElseBranch.Count > 0)
+            {
+                Console.WriteLine(ind + "  Else:");
+                foreach (var s in iff.ElseBranch) PrintNode(s, indent + 2);
+            }
+            break;
+        case FunctionCallNode f:
+            Console.WriteLine(ind + "Call: " + f.Name);
+            if (f.Arguments.Count > 0)
+            {
+                Console.WriteLine(ind + "  Args:");
+                foreach (var a in f.Arguments) Console.WriteLine(ind + "    " + PrintExpression(a));
+            }
+            break;
+        default:
+            Console.WriteLine(ind + node.GetType().Name);
+            break;
+    }
+}
+
+string PrintExpression(ExpressionNode? expr)
+{
+    if (expr == null) return "<null>";
+    switch (expr)
+    {
+        case IdentifierNode id: return id.Name;
+        case NumberNode n: return n.Value;
+        case StringNode s: return '"' + s.Value + '"';
+        case BinaryExpressionNode b:
+            return "(" + PrintExpression(b.Left) + " " + b.Operator + " " + PrintExpression(b.Right) + ")";
+        default: return expr.GetType().Name;
+    }
+}
