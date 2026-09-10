@@ -1,5 +1,8 @@
 # m-coding-language
 (In development)
+(Project has been renamed from MESCL to MCL)
+"MESCL - M-Engine Scripts Coding Language" (.mscl)
+"MCL - M Coding language" (.m)
 
 Tokenizator (1 updates) v 0.0.1 Alpha
 
