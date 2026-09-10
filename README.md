@@ -6,6 +6,8 @@
 
 V 1.0.0 (BETA)
 
+Requires net 10.0
+
 Tokenizator (1 updates) v 1.0.0 Beta
 
 Parser (3) v 0.6.8 Beta
