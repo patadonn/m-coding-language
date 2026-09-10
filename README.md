@@ -28,6 +28,10 @@ Main feature is that you can write code FULLY IN RUSSIAN LANGUAGE! Template:
 
     "Make Compiler using C# then remake it using C++ or Rust"
 
+    "Make Game Engine Based on MCL"
+
+    "Make Compiler using MCL"
+
 
 
 PROJECT PROTECTED BY MIT-LICENSE: You can read it in file called "LICENSE".
