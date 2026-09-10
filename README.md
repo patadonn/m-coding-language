@@ -27,6 +27,10 @@ Main feature is that you can write code FULLY IN RUSSIAN LANGUAGE! Template:
     "After developing the main release version we gonna try to translate it on English!"
 
     "Make Compiler using C# then remake it using C++ or Rust"
+    
+    "Make Game Engine Based on MCL"
+
+    "Make Compiler using MCL"
 
     "Make Game Engine Based on MCL"
 
