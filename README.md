@@ -4,6 +4,8 @@
 "MESCL - M-Engine Scripts Coding Language" (.mscl)
 "MCL - M Coding language" (.m)
 
+Requires net 10.0
+
 V 1.0.0 (BETA)
 
 Tokenizator (1 updates) v 1.0.0 Beta
