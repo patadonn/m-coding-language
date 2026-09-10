@@ -18,10 +18,10 @@ Main feature is that you can write code FULLY IN RUSSIAN LANGUAGE! Template:
         отладить(Отлично!);
     
     #
-
-After developing the main release version we gonna try to translate it on English!
-
-
+    
+[PLANS]:
+"After developing the main release version we gonna try to translate it on English!"
+"Make Compiler using C# then remake it using C++ or Rust"
 
 
 
