@@ -1,0 +1,14 @@
+C:\Projects\VS\MESCL\MESCL\bin\Debug\net10.0\MESCL.exe
+C:\Projects\VS\MESCL\MESCL\bin\Debug\net10.0\MESCL.deps.json
+C:\Projects\VS\MESCL\MESCL\bin\Debug\net10.0\MESCL.runtimeconfig.json
+C:\Projects\VS\MESCL\MESCL\bin\Debug\net10.0\MESCL.dll
+C:\Projects\VS\MESCL\MESCL\bin\Debug\net10.0\MESCL.pdb
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.AssemblyInfoInputs.cache
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.AssemblyInfo.cs
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.csproj.CoreCompileInputs.cache
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.dll
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\refint\MESCL.dll
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.pdb
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\MESCL.genruntimeconfig.cache
+C:\Projects\VS\MESCL\MESCL\obj\Debug\net10.0\ref\MESCL.dll
